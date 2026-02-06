@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<!--
+Name: Mann Mihir Desai 
+Purpose: Student Survey Form for prospective students
+-->
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Survey Form</title>
+  <h3>Name: Mann Mihir Desai </h3>
+  <h3>G No: G01568496</h3>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+
+  <h1>Student Survey Form</h1>
+
+  <form id="surveyForm">
+
+    <fieldset>
+      <legend>Personal Information</legend>
+
+      <label>First Name:
+        <input type="text" name="fname" required>
+      </label>
+
+      <label>Last Name:
+        <input type="text" name="lname" required>
+      </label>
+
+      <label>Street Address:
+        <input type="text" name="address" required>
+      </label>
+
+      <label>City:
+        <input type="text" name="city" required>
+      </label>
+
+      <label>State:
+        <input type="text" name="state" required>
+      </label>
+
+      <label>Zip:
+        <input type="text" name="zip" required>
+      </label>
+
+      <label>Telephone:
+        <input type="tel" name="phone" required>
+      </label>
+
+      <label>Email:
+        <input type="email" name="email" required>
+      </label>
+
+      <label>Date of Survey:
+        <input type="date" name="date" required>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>What did you like most about the campus?</legend>
+      <label><input type="checkbox" value="students"> Students</label>
+      <label><input type="checkbox" value="location"> Location</label>
+      <label><input type="checkbox" value="campus"> Campus</label>
+      <label><input type="checkbox" value="atmosphere"> Atmosphere</label>
+      <label><input type="checkbox" value="dorms"> Dorm Rooms</label>
+      <label><input type="checkbox" value="sports"> Sports</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>How did you become interested?</legend>
+      <label><input type="radio" name="interest" value="friends" required> Friends</label>
+      <label><input type="radio" name="interest" value="tv"> Television</label>
+      <label><input type="radio" name="interest" value="internet"> Internet</label>
+      <label><input type="radio" name="interest" value="other"> Other</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Recommendation Likelihood</legend>
+      <select required>
+        <option value="">--Select--</option>
+        <option>Very Likely</option>
+        <option>Likely</option>
+        <option>Unlikely</option>
+      </select>
+    </fieldset>
+
+    <fieldset>
+      <legend>Raffle</legend>
+      <label>
+        Enter at least 10 comma-separated numbers (1–100):
+        <input type="text" id="raffle" required>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Additional Comments</legend>
+      <textarea rows="4" cols="50"></textarea>
+    </fieldset>
+
+    <div class="buttons">
+      <button type="submit">Submit</button>
+      <button type="reset">Cancel</button>
+    </div>
+
+  </form>
+
+</body>
+</html>

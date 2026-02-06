@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Survey</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h2>Student Survey Form</h2>
+
+<form id="surveyForm">
+
+  <label>First Name *</label>
+  <input type="text" name="firstName" required>
+
+  <label>Last Name *</label>
+  <input type="text" name="lastName" required>
+
+  <label>Street Address *</label>
+  <input type="text" name="street" required>
+
+  <label>City *</label>
+  <input type="text" name="city" required>
+
+  <label>State *</label>
+  <input type="text" name="state" required>
+
+  <label>Zip *</label>
+  <input type="text" name="zip" required>
+
+  <label>Telephone *</label>
+  <input type="tel" name="phone" required>
+
+  <label>Email *</label>
+  <input type="email" name="email" required>
+
+  <label>Date of Survey *</label>
+  <input type="date" name="date" required>
+
+  <h3>What did you like most about the campus?</h3>
+  <input type="checkbox" name="likes" value="Students"> Students<br>
+  <input type="checkbox" name="likes" value="Location"> Location<br>
+  <input type="checkbox" name="likes" value="Campus"> Campus<br>
+  <input type="checkbox" name="likes" value="Atmosphere"> Atmosphere<br>
+  <input type="checkbox" name="likes" value="Dorm Rooms"> Dorm Rooms<br>
+  <input type="checkbox" name="likes" value="Sports"> Sports<br>
+
+  <h3>How did you hear about us?</h3>
+  <input type="radio" name="interest" value="Friends" required> Friends<br>
+  <input type="radio" name="interest" value="Television"> Television<br>
+  <input type="radio" name="interest" value="Internet"> Internet<br>
+  <input type="radio" name="interest" value="Other"> Other<br>
+
+  <label>Likelihood of Recommendation *</label>
+  <select name="recommend" required>
+    <option value="">Select</option>
+    <option>Very Likely</option>
+    <option>Likely</option>
+    <option>Unlikely</option>
+  </select>
+
+  <label>Raffle (at least 10 numbers, 1–100, comma-separated) *</label>
+  <input type="text" name="raffle" required>
+
+  <label>Additional Comments</label>
+  <textarea name="comments"></textarea>
+
+  <div class="buttons">
+    <button type="submit">Submit</button>
+    <button type="reset">Cancel</button>
+  </div>
+
+</form>
+
+<script src="script.js"></script>
+</body>
+</html>
