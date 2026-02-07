@@ -1,111 +1,34 @@
 <!DOCTYPE html>
-<!--
-Name: Mann Mihir Desai 
-Purpose: Student Survey Form for prospective students
--->
-
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Student Survey Form</title>
-  <h3>Name: Mann Mihir Desai </h3>
-  <h3>G No: G01568496</h3>
-  <link rel="stylesheet" href="style.css">
-  <script src="script.js" defer></script>
+    <meta charset="UTF-8">
+    <title>Student Homepage</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <h1>Student Survey Form</h1>
+<header>
+    <h1>Welcome to My Class Homepage</h1>
+</header>
 
-  <form id="surveyForm">
+<nav>
+    <a href="index.html">Home</a>
+    <a href="survey.html">Student Survey</a>
+</nav>
 
-    <fieldset>
-      <legend>Personal Information</legend>
+<section class="content">
+    <img src="./img.jpg" alt="Campus Image" class="profile-img">
 
-      <label>First Name:
-        <input type="text" name="fname" required>
-      </label>
+    <p>
+        Hello! This is my class homepage created as part of the assignment.
+        This website is hosted on AWS using both Amazon S3 static website hosting
+        and an EC2 web server. Please visit the survey page and share your feedback.
+    </p>
+</section>
 
-      <label>Last Name:
-        <input type="text" name="lname" required>
-      </label>
-
-      <label>Street Address:
-        <input type="text" name="address" required>
-      </label>
-
-      <label>City:
-        <input type="text" name="city" required>
-      </label>
-
-      <label>State:
-        <input type="text" name="state" required>
-      </label>
-
-      <label>Zip:
-        <input type="text" name="zip" required>
-      </label>
-
-      <label>Telephone:
-        <input type="tel" name="phone" required>
-      </label>
-
-      <label>Email:
-        <input type="email" name="email" required>
-      </label>
-
-      <label>Date of Survey:
-        <input type="date" name="date" required>
-      </label>
-    </fieldset>
-
-    <fieldset>
-      <legend>What did you like most about the campus?</legend>
-      <label><input type="checkbox" value="students"> Students</label>
-      <label><input type="checkbox" value="location"> Location</label>
-      <label><input type="checkbox" value="campus"> Campus</label>
-      <label><input type="checkbox" value="atmosphere"> Atmosphere</label>
-      <label><input type="checkbox" value="dorms"> Dorm Rooms</label>
-      <label><input type="checkbox" value="sports"> Sports</label>
-    </fieldset>
-
-    <fieldset>
-      <legend>How did you become interested?</legend>
-      <label><input type="radio" name="interest" value="friends" required> Friends</label>
-      <label><input type="radio" name="interest" value="tv"> Television</label>
-      <label><input type="radio" name="interest" value="internet"> Internet</label>
-      <label><input type="radio" name="interest" value="other"> Other</label>
-    </fieldset>
-
-    <fieldset>
-      <legend>Recommendation Likelihood</legend>
-      <select required>
-        <option value="">--Select--</option>
-        <option>Very Likely</option>
-        <option>Likely</option>
-        <option>Unlikely</option>
-      </select>
-    </fieldset>
-
-    <fieldset>
-      <legend>Raffle</legend>
-      <label>
-        Enter at least 10 comma-separated numbers (1–100):
-        <input type="text" id="raffle" required>
-      </label>
-    </fieldset>
-
-    <fieldset>
-      <legend>Additional Comments</legend>
-      <textarea rows="4" cols="50"></textarea>
-    </fieldset>
-
-    <div class="buttons">
-      <button type="submit">Submit</button>
-      <button type="reset">Cancel</button>
-    </div>
-
-  </form>
+<footer>
+    <p>© 2026 Student Website - Mann M. Desai </p>
+</footer>
 
 </body>
 </html>
