@@ -2,17 +2,26 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_USER = "desaimann37"        // Your DockerHub username
-        IMAGE_NAME = "swe645-app"            // Your image repo name
-        IMAGE_TAG = "latest"
+        DOCKERHUB_USER = "desaimann37"
+        IMAGE_NAME     = "swe645-app"
+        IMAGE_TAG      = "${BUILD_NUMBER}"
     }
 
     stages {
 
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/desaimann37/SWE_645.git'
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
-                    dockerImage = docker.build("${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}")
+                    sh """
+                    docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} .
+                    """
                 }
             }
         }
@@ -20,8 +29,10 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-creds') {
-                        dockerImage.push()
+                    withDockerRegistry(credentialsId: 'dockerhub-creds', url: '') {
+                        sh """
+                        docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+                        """
                     }
                 }
             }
@@ -29,20 +40,24 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh '''
-                kubectl apply -f deployment.yaml
-                kubectl apply -f service.yaml
-                '''
+                script {
+                    sh """
+                    kubectl set image deployment/swe645-deployment \
+                    swe645-container=${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+                    
+                    kubectl rollout status deployment/swe645-deployment
+                    """
+                }
             }
         }
     }
 
     post {
         success {
-            echo 'Deployment successful!'
+            echo "✅ Deployment Successful! Image tag: ${IMAGE_TAG}"
         }
         failure {
-            echo 'Deployment failed.'
+            echo "❌ Deployment Failed!"
         }
     }
 }
