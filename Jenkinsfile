@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_USER = "desaimann37"
-        IMAGE_NAME = "swe645-app"
+        DOCKERHUB_USER = "desaimann37"        // your DockerHub username
+        IMAGE_NAME = "swe645-app"            // image repo name
         IMAGE_TAG = "latest"
     }
 
@@ -17,23 +17,18 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh """
-                docker build -t $DOCKERHUB_USER/$IMAGE_NAME:$IMAGE_TAG .
-                """
+                script {
+                    dockerImage = docker.build("${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}")
+                }
             }
         }
 
-        stage('Push to DockerHub') {
+        stage('Push to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'USERNAME',
-                    passwordVariable: 'PASSWORD'
-                )]) {
-                    sh """
-                    docker login -u $USERNAME -p $PASSWORD
-                    docker push $DOCKERHUB_USER/$IMAGE_NAME:$IMAGE_TAG
-                    """
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-creds') {
+                        dockerImage.push()
+                    }
                 }
             }
         }
@@ -45,6 +40,15 @@ pipeline {
                 kubectl apply -f service.yaml
                 """
             }
+        }
+    }
+
+    post {
+        success {
+            echo 'Deployment successful!'
+        }
+        failure {
+            echo 'Deployment failed.'
         }
     }
 }
