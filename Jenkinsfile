@@ -2,18 +2,12 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_USER = "desaimann37"        // your DockerHub username
-        IMAGE_NAME = "swe645-app"            // image repo name
+        DOCKERHUB_USER = "desaimann37"        // Your DockerHub username
+        IMAGE_NAME = "swe645-app"            // Your image repo name
         IMAGE_TAG = "latest"
     }
 
     stages {
-
-        stage('Checkout Code') {
-            steps {
-                git 'git@github.com:desaimann37/SWE_645.git'
-            }
-        }
 
         stage('Build Docker Image') {
             steps {
@@ -35,10 +29,10 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh """
+                sh '''
                 kubectl apply -f deployment.yaml
                 kubectl apply -f service.yaml
-                """
+                '''
             }
         }
     }
