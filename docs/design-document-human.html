@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Georgia&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12pt;
+    line-height: 1.75;
+    color: #1a1a1a;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 60px 50px;
+  }
+
+  .cover {
+    text-align: center;
+    padding: 80px 0 60px;
+    border-bottom: 2px solid #333;
+    margin-bottom: 40px;
+  }
+
+  .cover h1 {
+    font-size: 20pt;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+  }
+
+  .cover .subtitle {
+    font-size: 13pt;
+    color: #444;
+    margin-bottom: 8px;
+  }
+
+  .cover .meta {
+    font-size: 11pt;
+    color: #555;
+    margin-top: 20px;
+    line-height: 2;
+  }
+
+  h2 {
+    font-size: 13pt;
+    font-weight: bold;
+    margin-top: 32px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 4px;
+  }
+
+  h3 {
+    font-size: 12pt;
+    font-weight: bold;
+    margin-top: 20px;
+    margin-bottom: 6px;
+  }
+
+  p {
+    margin-bottom: 12px;
+    text-align: justify;
+  }
+
+  pre, code {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 9.5pt;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+  }
+
+  pre {
+    padding: 12px 14px;
+    margin: 12px 0;
+    white-space: pre;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+
+  code {
+    padding: 1px 4px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 11pt;
+  }
+
+  th {
+    background: #2c3e50;
+    color: white;
+    padding: 7px 10px;
+    text-align: left;
+    font-weight: bold;
+  }
+
+  td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #ddd;
+    vertical-align: top;
+  }
+
+  tr:nth-child(even) td { background: #f9f9f9; }
+
+  ul, ol {
+    margin: 8px 0 12px 22px;
+  }
+
+  li {
+    margin-bottom: 5px;
+  }
+
+  .page-break { page-break-before: always; }
+
+  .note {
+    background: #fffbea;
+    border-left: 4px solid #e6c200;
+    padding: 10px 14px;
+    margin: 14px 0;
+    font-size: 11pt;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<!-- Cover -->
+<div class="cover">
+  <h1>Design Document</h1>
+  <div class="subtitle">Agentic AI Extension of the Student Survey System</div>
+  <div class="subtitle">Using LangGraph and FastMCP</div>
+  <div class="meta">
+    <strong>Course:</strong> SWE 645 &mdash; Extra Credit Assignment<br>
+    <strong>Team:</strong> Mann Desai &nbsp;|&nbsp; Tisha &nbsp;|&nbsp; Aakash &nbsp;|&nbsp; Yash<br>
+    <strong>Date:</strong> April 2026
+  </div>
+</div>
+
+
+<!-- Section 1 -->
+<h2>1. Introduction</h2>
+
+<p>
+  For this extra credit assignment, we took the Student Survey system we built in Homework 3
+  and added an AI-powered layer on top of it. The original system let users submit and manage
+  surveys through a standard React form and a FastAPI REST backend. What we've done here is
+  add a completely separate conversational interface so that a user can type something like
+  <em>"delete John Doe's survey"</em> and the system will figure out what they mean, find the
+  right record, ask for confirmation, and carry out the action — all without the user clicking
+  through any forms.
+</p>
+
+<p>
+  The core idea is to keep everything we already had intact and build the AI orchestration
+  layer on top of it. We didn't rewrite the backend or touch the existing REST routes; we just
+  exposed the same database operations as MCP tools so the agent could call them.
+</p>
+
+<p>
+  The overall architecture is:
+</p>
+
+<pre>
+React Chat UI  →  LangGraph Agent (Claude Haiku 4.5)  →  FastMCP Tool Server  →  MySQL RDS
+   Pod 1                    Pod 2                               Pod 3             AWS RDS
+</pre>
+
+<p>
+  Each of those three pods is independently deployed on Kubernetes and managed via Helm charts.
+  The agent talks to the MCP backend over HTTP, and the React frontend talks to the agent
+  over a simple REST endpoint we exposed at <code>POST /agent/query</code>.
+</p>
+
+
+<!-- Section 2 -->
+<h2>2. LangGraph Graph Design</h2>
+
+<p>
+  The agent is built as a LangGraph <code>StateGraph</code>. We chose LangGraph because it
+  lets you define exactly what happens at each step and how decisions are made, rather than
+  relying on the LLM to figure that out on its own. For a system that deletes database records,
+  we wanted that level of control.
+</p>
+
+<h3>State Object</h3>
+
+<p>
+  All the information the agent needs across a conversation is stored in a typed dictionary
+  called <code>AgentState</code>. The most important fields are:
+</p>
+
+<table>
+  <tr><th>Field</th><th>What it holds</th></tr>
+  <tr><td><code>messages</code></td><td>The full chat history so the LLM has context</td></tr>
+  <tr><td><code>intent</code></td><td>What the user wants: create / read / update / delete / confirm / cancel</td></tr>
+  <tr><td><code>draft_survey</code></td><td>Partially filled survey during a multi-turn create flow</td></tr>
+  <tr><td><code>missing_fields</code></td><td>Which fields the agent still needs to ask about</td></tr>
+  <tr><td><code>target_survey_id</code></td><td>The ID of the survey being updated or deleted</td></tr>
+  <tr><td><code>update_changes</code></td><td>The specific fields to change in an update</td></tr>
+  <tr><td><code>awaiting</code></td><td>Whether we're waiting for user confirmation before executing</td></tr>
+  <tr><td><code>response_text</code></td><td>The final message to send back to the user</td></tr>
+</table>
+
+<p>
+  The <code>awaiting</code> field is what makes the human-in-the-loop safety work. When the
+  agent has identified a survey to delete and displayed its details, it sets
+  <code>awaiting = "delete_confirm"</code> and returns to the user. On the next message, the
+  router checks that field before doing anything — if the user said "yes," it routes to
+  <code>delete_execute</code>; otherwise it cancels.
+</p>
+
+<h3>Graph Topology</h3>
+
+<pre>
+START
+  |
+  v
+[input]          -- extract the latest user message from history
+  |
+  v
+[intent]         -- LLM classifies intent into one of seven categories
+  |
+  +--create----> [create_extract] --> [create_ask_or_confirm] --> [response]
+  |                                          |
+  |                                   (after confirm)
+  |                                   [create_execute] --> [response]
+  |
+  +--read------> [read_execute] --> [response]
+  |
+  +--update----> [update_resolve] --> [response]
+  |                    |
+  |             (after confirm)
+  |              [update_execute] --> [response]
+  |
+  +--delete----> [delete_resolve] --> [response]
+  |                    |
+  |             (after confirm)
+  |              [delete_execute] --> [response]
+  |
+  +--confirm---> (re-routes based on awaiting field)
+  +--cancel----> [cancel] --> [response]
+  +--unknown---> [unknown] --> [response]
+                                  |
+                                  v
+                                 END
+</pre>
+
+<h3>How Routing Works</h3>
+
+<p>
+  After the intent node runs, a conditional edge function called
+  <code>_route_from_intent</code> decides where to go next. It first checks whether
+  <code>awaiting</code> is set — if the user just replied "yes" to a pending delete
+  confirmation, it routes straight to <code>delete_execute</code> regardless of how the
+  intent classifier interpreted the word "yes." That check takes priority over everything else.
+  Only if there's no pending confirmation does it route based on the classified intent.
+</p>
+
+<h3>Session Persistence</h3>
+
+<p>
+  LangGraph graphs don't carry state between HTTP requests by themselves. We handle this with
+  an in-memory Python dictionary keyed by <code>session_id</code>. Every time the user sends
+  a message, the server rehydrates the stored state, runs the graph, and saves the updated
+  state back. It's simple and it works well for a per-session conversation.
+</p>
+
+
+<!-- Section 3 -->
+<div class="page-break"></div>
+<h2>3. MCP Tools Implemented</h2>
+
+<p>
+  The tool layer lives in <code>backend/mcp_tools.py</code> and is served by FastMCP, which
+  is mounted as a sub-app inside our existing FastAPI backend at the path <code>/mcp</code>.
+  The agent connects to it using <code>langchain-mcp-adapters</code>. We implemented all six
+  tools the assignment required:
+</p>
+
+<table>
+  <tr><th>Tool</th><th>Parameters</th><th>What it does</th></tr>
+  <tr>
+    <td><code>create_survey</code></td>
+    <td>All 12 required fields</td>
+    <td>Inserts a new survey and returns it with its assigned ID</td>
+  </tr>
+  <tr>
+    <td><code>list_surveys</code></td>
+    <td>None</td>
+    <td>Returns every survey record in the database</td>
+  </tr>
+  <tr>
+    <td><code>get_survey_by_id</code></td>
+    <td><code>survey_id</code></td>
+    <td>Fetches a single survey by its numeric ID</td>
+  </tr>
+  <tr>
+    <td><code>search_surveys</code></td>
+    <td>9 optional filters</td>
+    <td>Case-insensitive partial-match search by name, city, state, liked_most, interested_via, recommendation, and date range</td>
+  </tr>
+  <tr>
+    <td><code>update_survey</code></td>
+    <td>survey_id + any subset of fields</td>
+    <td>Patches only the provided fields, leaves others unchanged</td>
+  </tr>
+  <tr>
+    <td><code>delete_survey</code></td>
+    <td><code>survey_id</code></td>
+    <td>Deletes the survey and returns a snapshot of what was deleted</td>
+  </tr>
+</table>
+
+<p>
+  All tools reuse the same SQLModel ORM session that the REST API uses, so there's one
+  source of truth for the database schema. Each tool has a docstring that describes its
+  behavior clearly — this matters because the LLM uses those descriptions to decide which
+  tool to call.
+</p>
+
+
+<!-- Section 4 -->
+<h2>4. React Chat Interface</h2>
+
+<p>
+  We added a new page called "AI Survey Assistant" to the existing React app, accessible from
+  a new nav link. The layout follows the suggested design from the assignment spec:
+</p>
+
+<ul>
+  <li><strong>Left panel</strong> — explains what the agent can do, lists all the fields needed to create a survey, and includes eight clickable example prompts users can try</li>
+  <li><strong>Main chat area</strong> — scrollable message thread with user messages on the right (dark blue bubbles) and agent responses on the left (white bubbles), a "Thinking..." indicator while waiting, and Enter-to-send support</li>
+  <li><strong>Right panel</strong> — a small log of recent agent actions (created, updated, deleted, queried) so the user can track what's been done</li>
+</ul>
+
+<p>
+  The component generates a UUID session ID when it first loads and sends it with every
+  message. This is how the server knows which in-memory state to load for that conversation.
+  Multi-turn state — like remembering that we're halfway through collecting fields for a new
+  survey — is handled entirely on the server side. The frontend just sends messages and
+  displays responses.
+</p>
+
+
+<!-- Section 5 -->
+<h2>5. Kubernetes and Helm Deployment</h2>
+
+<p>
+  We created a Helm chart at <code>helm/student-survey/</code> that deploys the full system
+  as three separate pods, matching exactly what the assignment requires:
+</p>
+
+<table>
+  <tr><th>Pod</th><th>Image</th><th>Service Type</th></tr>
+  <tr><td>Frontend (React + Nginx)</td><td><code>student-survey-frontend</code></td><td>LoadBalancer — port 80</td></tr>
+  <tr><td>Agent (LangGraph)</td><td><code>student-survey-agent</code></td><td>ClusterIP — port 9000</td></tr>
+  <tr><td>Backend (FastAPI + MCP)</td><td><code>student-survey-backend</code></td><td>ClusterIP — port 8000</td></tr>
+</table>
+
+<p>
+  Sensitive values — the Anthropic API key and the database connection string — are stored as
+  Kubernetes Secrets and injected as environment variables at pod startup. We didn't hardcode
+  any credentials in the Helm chart templates. The <code>values.yaml</code> has placeholder
+  fields for base64-encoded secrets that get passed in at deploy time.
+</p>
+
+<p>
+  The agent deployment reads <code>MCP_SERVER_URL</code> pointing to the backend service's
+  cluster-internal DNS name, so communication between the agent and the backend stays inside
+  the cluster. Only the frontend is exposed externally via LoadBalancer.
+</p>
+
+
+<!-- Section 6 -->
+<div class="page-break"></div>
+<h2>6. Challenges We Ran Into</h2>
+
+<h3>MCP Tool Result Format</h3>
+<p>
+  This one took a while to figure out. Depending on the version of
+  <code>langchain-mcp-adapters</code>, the same tool call could return a plain Python dict,
+  a JSON string, or a list of MCP content blocks that looked like
+  <code>[{"type": "text", "text": "..."}]</code>. The agent nodes were breaking because they
+  expected a dict but kept getting a list. We ended up writing a small
+  <code>_unwrap_tool_result()</code> utility that normalizes all three formats before any node
+  tries to read from the result.
+</p>
+
+<h3>Keeping Confirmation State Across HTTP Requests</h3>
+<p>
+  The trickiest part of the whole project was making multi-turn confirmation work reliably.
+  When the agent says "I found John Doe's survey. Do you want to delete it?" and the user
+  replies "yes," the server gets a brand new HTTP request with no built-in memory. If we just
+  ran intent classification on "yes," it would come back as <code>confirm</code> — but the
+  router also needs to know it's confirming a <em>delete</em>, not a create or update.
+  The fix was to save the <code>awaiting</code> field in the session store and check it before
+  routing, so the router always knows what confirmation is pending.
+</p>
+
+<h3>FastMCP Lifespan Inside FastAPI</h3>
+<p>
+  FastMCP requires its own lifespan context to initialize the MCP session manager. When we
+  mounted it as a sub-app inside FastAPI, the session manager wasn't starting and every tool
+  call was failing. The fix was to nest the MCP lifespan inside our FastAPI lifespan using
+  <code>asynccontextmanager</code>, so both start up together. Once we figured that out it
+  worked perfectly, but it wasn't obvious from the FastMCP docs.
+</p>
+
+<h3>Intent Classification for "Yes" and "No"</h3>
+<p>
+  Early on, when a user typed "yes" after a delete confirmation prompt, the LLM would
+  sometimes classify it as <code>unknown</code> or even <code>create</code> depending on
+  conversation context. We fixed this by adding <code>confirm</code> and <code>cancel</code>
+  as explicit intent classes in the classification prompt, with examples, and by always
+  routing based on the <code>awaiting</code> field first before trusting the classifier.
+</p>
+
+<h3>Vite Environment Variables at Build Time</h3>
+<p>
+  We wanted to pass the agent URL into the React app via Docker Compose, but Vite bakes
+  <code>VITE_*</code> variables at image build time, not at container runtime. So
+  environment variables set in <code>docker-compose.yaml</code> under the frontend service
+  don't actually get picked up. We resolved this by setting reasonable defaults in the
+  component code (<code>http://localhost:8000</code> and <code>http://localhost:9000</code>),
+  which work correctly when running locally since those ports are exposed.
+</p>
+
+
+<!-- Section 7 -->
+<h2>7. Tech Stack Summary</h2>
+
+<table>
+  <tr><th>Layer</th><th>Technology</th></tr>
+  <tr><td>Frontend</td><td>React 19, React Router, Axios, Vite, Nginx</td></tr>
+  <tr><td>AI Agent</td><td>LangGraph, LangChain, Claude Haiku 4.5 (Anthropic), FastAPI</td></tr>
+  <tr><td>Tool Server</td><td>FastMCP 2.10+, langchain-mcp-adapters</td></tr>
+  <tr><td>Backend ORM</td><td>SQLModel (SQLAlchemy + Pydantic)</td></tr>
+  <tr><td>Database</td><td>MySQL 8 on AWS RDS</td></tr>
+  <tr><td>Containers</td><td>Docker, Docker Compose</td></tr>
+  <tr><td>Orchestration</td><td>Kubernetes, Helm 3</td></tr>
+</table>
+
+</body>
+</html>

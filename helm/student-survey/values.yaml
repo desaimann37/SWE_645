@@ -1,0 +1,53 @@
+# Default values for student-survey Helm chart.
+# Override any of these in a custom values file or with --set on the command line.
+
+# ── Backend (FastAPI + MCP) ─────────────────────────────────────────────────
+backend:
+  image:
+    repository: student-survey-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  port: 8000
+  service:
+    type: ClusterIP
+    port: 8000
+  env:
+    DATABASE_URL: "sqlite:///./test.db"
+
+# ── Agent (LangGraph) ────────────────────────────────────────────────────────
+agent:
+  image:
+    repository: student-survey-agent
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  port: 9000
+  service:
+    type: ClusterIP
+    port: 9000
+  env:
+    # MCP_SERVER_URL points to backend service inside the cluster
+    MCP_SERVER_URL: "http://student-survey-backend:8000/mcp"
+    AGENT_PORT: "9000"
+  # ANTHROPIC_API_KEY is injected from Kubernetes Secret (see secrets.yaml)
+
+# ── Frontend (React + Nginx) ─────────────────────────────────────────────────
+frontend:
+  image:
+    repository: student-survey-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  port: 80
+  service:
+    type: LoadBalancer
+    port: 80
+
+# ── Secrets ──────────────────────────────────────────────────────────────────
+secrets:
+  # Base64-encoded value of ANTHROPIC_API_KEY.
+  # Generate with: echo -n 'sk-ant-...' | base64
+  anthropicApiKeyB64: ""
+  # Base64-encoded database connection string (leave empty to use SQLite default).
+  databaseUrlB64: ""

@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+sqlmodel
+pymysql
+cryptography
+python-dotenv
+fastmcp>=2.10.0

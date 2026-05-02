@@ -1,0 +1,6 @@
+apiVersion: v2
+name: student-survey
+description: Agentic AI Student Survey System — React frontend, LangGraph agent, FastAPI+MCP backend
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
