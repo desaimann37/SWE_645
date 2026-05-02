@@ -196,3 +196,7 @@ kubectl port-forward svc/student-survey-frontend 3000:80
 
 **SWE 645 — Agentic AI Extension**  
 Mann Desai · April 2026
+Aakash Patil 
+Tisha Shah
+Aditya Raj
+Yash Koli
